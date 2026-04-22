@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aether | Neural PostgreSQL Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --surface: rgba(17, 24, 39, 0.6);
+            --surface-border: rgba(255, 255, 255, 0.08);
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --secondary: #ec4899;
+            --accent: #8b5cf6;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --glass-blur: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Ambient Mesh Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: 
+                radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            animation: pulseBg 15s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulseBg {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            padding: 3rem 1.5rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4rem;
+            font-weight: 700;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #fff 30%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        /* Config Panel */
+        .config-card {
+            background: var(--surface);
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--surface-border);
+            border-radius: 28px;
+            padding: 1.5rem;
+            margin-bottom: 3rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-wrapper svg {
+            position: absolute;
+            left: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .config-card input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--surface-border);
+            border-radius: 18px;
+            padding: 1rem 1rem 1rem 3.5rem;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .config-card input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 18px;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 10px 25px -5px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 30px -5px var(--primary-glow);
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2.5rem;
+        }
+
+        /* Form Styling */
+        .glass-panel {
+            background: var(--surface);
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--surface-border);
+            border-radius: 32px;
+            padding: 2.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .panel-header {
+            margin-bottom: 2rem;
+        }
+
+        .panel-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .panel-header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .field {
+            margin-bottom: 1.5rem;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 0.6rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .field input, .field textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--surface-border);
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            color: var(--text-main);
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        .field textarea { min-height: 120px; resize: none; }
+
+        .field input:focus, .field textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* Inventory List */
+        .inventory {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .item-card {
+            background: var(--surface);
+            backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--surface-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideIn 0.5s ease-out backwards;
+        }
+
+        .item-card:hover {
+            transform: translateX(10px);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .item-meta h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-meta p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            max-width: 400px;
+        }
+
+        .item-price {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-top: 0.5rem;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--surface-border);
+            color: var(--text-muted);
+            transition: 0.3s;
+        }
+
+        .btn-icon:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.08);
+            transform: rotate(5deg) scale(1.1);
+        }
+
+        .btn-icon.delete:hover { background: var(--danger); }
+        .btn-icon.edit:hover { background: var(--accent); }
+
+        /* Status Toast */
+        #status-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--surface-border);
+            padding: 1rem 2rem;
+            border-radius: 20px;
+            display: none;
+            z-index: 1000;
+            animation: toastIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(100px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 950px) {
+            .grid { grid-template-columns: 1fr; }
+            .glass-panel { position: static; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="ambient-bg"></div>
+
+<div class="container">
+    <header>
+        <h1>AETHER</h1>
+        <p>Neural Nexus for Serverless PostgreSQL Management</p>
+    </header>
+
+    <div class="config-card">
+        <div class="input-wrapper">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="api-url" placeholder="Secure API Gateway Endpoint URL...">
+        </div>
+        <button class="btn-primary" onclick="fetchProducts()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 12c0-4.4 3.6-8 8-8 3.3 0 6.1 2 7.3 4.8l2.2-2.8M22 12c0 4.4-3.6 8-8 8-3.3 0-6.1-2-7.3-4.8l-2.2 2.8"/></svg>
+            Sync Node
+        </button>
+    </div>
+
+    <div class="grid">
+        <div class="glass-panel">
+            <div class="panel-header">
+                <h2 id="form-title">Add Entity</h2>
+                <p>Register a new item into the cloud cluster</p>
+            </div>
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="field">
+                    <label>Identity</label>
+                    <input type="text" id="name" placeholder="Entity Tag" required>
+                </div>
+                <div class="field">
+                    <label>Data Payload</label>
+                    <textarea id="description" placeholder="Metadata description..."></textarea>
+                </div>
+                <div class="field" style="margin-bottom: 2rem;">
+                    <label>Valuation (USD)</label>
+                    <input type="number" id="price" step="0.01" placeholder="0.00" required>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1; justify-content: center;">
+                        <span id="submit-btn-text">Initialize Entry</span>
+                    </button>
+                    <button type="button" id="cancel-btn" class="btn-icon delete" style="display: none;" onclick="resetForm()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="inventory-list" class="inventory">
+            <!-- Dynamic Items -->
+            <div style="text-align: center; padding: 5rem; opacity: 0.5;">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 1rem;"><circle cx="12" cy="12" r="10"></circle><line x1="14.31" y1="8" x2="20.05" y2="17.94"></line><line x1="9.69" y1="8" x2="21.17" y2="8"></line><line x1="7.38" y1="12" x2="13.12" y2="2.06"></line><line x1="9.69" y1="16" x2="3.95" y2="6.06"></line><line x1="14.31" y1="16" x2="2.83" y2="16"></line><line x1="16.62" y1="12" x2="10.88" y2="21.94"></line></svg>
+                <p>Waiting for API synchronization...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="status-toast"></div>
+
+<script>
+    const form = document.getElementById('product-form');
+    const toast = document.getElementById('status-toast');
+    const inventoryList = document.getElementById('inventory-list');
+    const submitBtnText = document.getElementById('submit-btn-text');
+    const formTitle = document.getElementById('form-title');
+    const cancelBtn = document.getElementById('cancel-btn');
+
+    function notify(msg, type = 'success') {
+        toast.textContent = msg;
+        toast.style.borderColor = type === 'success' ? 'var(--success)' : 'var(--danger)';
+        toast.style.color = type === 'success' ? 'var(--success)' : 'var(--danger)';
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 4000);
+    }
+
+    async function fetchProducts() {
+        const url = document.getElementById('api-url').value.trim();
+        if (!url) return notify('Endpoint URL missing', 'error');
+
+        inventoryList.innerHTML = '<div style="text-align: center; padding: 5rem;">Synchronizing with cloud...</div>';
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Circuit break: Request failed');
+            const data = await res.json();
+            render(data);
+            notify('Data Refreshed');
+        } catch (e) {
+            notify(e.message, 'error');
+            inventoryList.innerHTML = `<div style="text-align: center; padding: 5rem; color: var(--danger); opacity: 0.7;">Connection fault: ${e.message}</div>`;
+        }
+    }
+
+    function render(items) {
+        if (!items || items.length === 0) {
+            inventoryList.innerHTML = '<div style="text-align: center; padding: 5rem; opacity: 0.5;">No entities found in this cluster</div>';
+            return;
+        }
+
+        inventoryList.innerHTML = items.map((p, i) => `
+            <div class="item-card" style="animation-delay: ${i * 0.1}s">
+                <div class="item-meta">
+                    <h3>${p.name}</h3>
+                    <p>${p.description || 'Null signal (no description)'}</p>
+                    <div class="item-price">$${parseFloat(p.price).toFixed(2)}</div>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-icon edit" onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&apos;")})'>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button class="btn-icon delete" onclick="deleteProduct(${p.id})">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path></svg>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const url = document.getElementById('api-url').value.trim();
+        const id = document.getElementById('product-id').value;
+        const payload = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            price: parseFloat(document.getElementById('price').value)
+        };
+
+        if(!url) return notify('Sync endpoint first', 'error');
+
+        try {
+            const method = id ? 'PUT' : 'POST';
+            const endpoint = id ? `${url}/${id}` : url;
+            const res = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('Execution failed');
+            notify(id ? 'Entity Updated' : 'Entity Initialized');
+            resetForm();
+            fetchProducts();
+        } catch (e) {
+            notify(e.message, 'error');
+        }
+    });
+
+    async function deleteProduct(id) {
+        if (!confirm('Purge this entity from the cluster?')) return;
+        const url = document.getElementById('api-url').value.trim();
+        try {
+            const res = await fetch(`${url}/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Purge failed');
+            notify('Entity Purged');
+            fetchProducts();
+        } catch (e) {
+            notify(e.message, 'error');
+        }
+    }
+
+    function editProduct(p) {
+        document.getElementById('product-id').value = p.id;
+        document.getElementById('name').value = p.name;
+        document.getElementById('description').value = p.description;
+        document.getElementById('price').value = p.price;
+        
+        submitBtnText.textContent = 'Commit Update';
+        formTitle.textContent = 'Modify Entity';
+        cancelBtn.style.display = 'grid';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+        form.reset();
+        document.getElementById('product-id').value = '';
+        submitBtnText.textContent = 'Initialize Entry';
+        formTitle.textContent = 'Add Entity';
+        cancelBtn.style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
