@@ -413,8 +413,7 @@
             const res = await fetch(url);
             if (!res.ok) throw new Error('Circuit break: Request failed');
             const data = await res.json();
-            const actualItems = JSON.parse(data.body);
-            render(actualItems);
+            render(data);
             notify('Data Refreshed');
         } catch (e) {
             notify(e.message, 'error');
